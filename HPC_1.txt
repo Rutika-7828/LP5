@@ -1,0 +1,108 @@
+#include <iostream>
+#include <queue>
+#include <stack>
+#include <omp.h>
+
+using namespace std;
+
+void bfs_parallel(int **adjMatrix, int numVertices, int startVertex) 
+{
+    bool *visited = new bool[numVertices];
+    for (int i = 0; i < numVertices; ++i)
+        visited[i] = false;
+
+    queue<int> q;
+    q.push(startVertex);
+    visited[startVertex] = true;
+
+    while (!q.empty()) 
+    {
+        int currentVertex = q.front();
+        q.pop();
+        cout << currentVertex << " ";
+
+        // Parallelize the loop using OpenMP
+        #pragma omp parallel for
+        for (int i = 0; i < numVertices; ++i) 
+	{
+            if (adjMatrix[currentVertex][i] == 1 && !visited[i]) 
+	    {
+                visited[i] = true;
+                q.push(i);
+            }
+        }
+    }
+
+    delete[] visited;
+}
+
+void dfs_parallel(int **adjMatrix, int numVertices, int startVertex) 
+{
+    bool *visited = new bool[numVertices];
+    for (int i = 0; i < numVertices; ++i)
+        visited[i] = false;
+
+    stack<int> s;
+    s.push(startVertex);
+
+    while (!s.empty()) 
+    {
+        int currentVertex = s.top();
+        s.pop();
+
+        if (!visited[currentVertex]) 
+	{
+            cout << currentVertex << " ";
+            visited[currentVertex] = true;
+        }
+
+        // Parallelize the loop using OpenMP
+        #pragma omp parallel for
+        for (int i = 0; i < numVertices; ++i) 
+	{
+            if (adjMatrix[currentVertex][i] == 1 && !visited[i]) 
+	    {
+                s.push(i);
+            }
+        }
+    }
+
+    delete[] visited;
+}
+
+int main() {
+    int numVertices, startVertex;
+    cout << "Enter the number of vertices: ";
+    cin >> numVertices;
+
+    // Create the adjacency matrix
+    int **adjMatrix = new int*[numVertices];
+    for (int i = 0; i < numVertices; ++i)
+        adjMatrix[i] = new int[numVertices];
+
+    cout << "Enter the adjacency matrix:\n";
+    for (int i = 0; i < numVertices; ++i) {
+        for (int j = 0; j < numVertices; ++j) {
+            cin >> adjMatrix[i][j];
+        }
+    }
+
+    cout << "Enter the starting vertex for BFS: ";
+    cin >> startVertex;
+    cout << "BFS traversal: ";
+    bfs_parallel(adjMatrix, numVertices, startVertex);
+    cout << endl;
+
+    cout << "Enter the starting vertex for DFS: ";
+    cin >> startVertex;
+    cout << "DFS traversal: ";
+    dfs_parallel(adjMatrix, numVertices, startVertex);
+    cout << endl;
+
+    // Clean up memory
+    for (int i = 0; i < numVertices; ++i)
+        delete[] adjMatrix[i];
+    delete[] adjMatrix;
+
+    return 0;
+}
